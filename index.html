@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Misiones de Ciudadanía Digital - 4º Primaria</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-color: #1a1d24;
+            --surface-color: #242831;
+            --primary-color: #5865f2;
+            --text-color: #f0f0f0;
+            --text-muted: #a0a0b0;
+            --accent-gradient: linear-gradient(45deg, #5865f2, #a458f2);
+            --shadow: 0 10px 30px rgba(0,0,0,0.3);
+            --border-radius: 16px;
+            --transition-curve: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: var(--text-color);
+        }
+
+        #widget-container {
+            width: 100%;
+            max-width: 850px;
+            height: 540px; 
+            background-color: var(--surface-color);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            display: flex;
+        }
+
+        #missions-list-container {
+            flex: 0 0 300px;
+            overflow-y: auto;
+            position: relative;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        #missions-list-container::-webkit-scrollbar { display: none; }
+
+        #missions-list-container::before,
+        #missions-list-container::after {
+            content: '';
+            display: block;
+            height: 220px;
+        }
+
+        #missions-list-container {
+             mask-image: linear-gradient(
+                to bottom,
+                transparent,
+                black 25%,
+                black 75%,
+                transparent
+            );
+            padding: 0 20px;
+        }
+
+        .mission-card {
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            overflow: hidden;
+            border: 2px solid transparent;
+            position: relative; 
+            transform: scale(0.9);
+            opacity: 0.6;
+            transition: all 0.4s var(--transition-curve);
+        }
+
+        .mission-card.active {
+            transform: scale(1.1);
+            opacity: 1;
+            background: var(--accent-gradient);
+            box-shadow: 0 8px 25px rgba(88, 101, 242, 0.4);
+        }
+        
+        .mission-card:not(.active):hover {
+            transform: scale(0.95);
+            opacity: 0.8;
+            border-color: rgba(88, 101, 242, 0.3);
+        }
+
+        .mission-number {
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            font-size: 80px;
+            font-weight: 700;
+            color: rgba(255,255,255,0.05);
+            z-index: 1;
+            transition: color 0.4s ease;
+        }
+
+        .mission-card.active .mission-number { color: rgba(255,255,255,0.2); }
+        
+        .mission-title {
+            position: relative;
+            z-index: 2;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-muted);
+            transition: color 0.4s ease;
+        }
+
+        .mission-card.active .mission-title { color: white; }
+
+        /* --- Panel Derecho (Detalles y Chat) --- */
+        #mission-details {
+            flex: 1;
+            background-color: rgba(0,0,0,0.15);
+            position: relative;
+            overflow: hidden;
+            padding: 30px 40px; /* Padding general para el panel */
+        }
+
+        /* --- Contenedor de los detalles de la misión --- */
+        #mission-details-content {
+            position: absolute;
+            top: 30px; bottom: 30px; left: 40px; right: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            opacity: 1;
+            transform: translateX(0);
+            transition: opacity 0.5s var(--transition-curve), transform 0.5s var(--transition-curve);
+        }
+        #mission-details-content.hidden {
+            opacity: 0;
+            transform: translateX(-30px);
+            pointer-events: none;
+        }
+
+        /* --- Contenedor del Chatbot --- */
+        #chatbot-container {
+            position: absolute;
+            top: 15px; bottom: 15px; left: 15px; right: 15px;
+            opacity: 0;
+            transform: translateX(30px);
+            pointer-events: none;
+            transition: opacity 0.5s var(--transition-curve), transform 0.5s var(--transition-curve), box-shadow 0.5s var(--transition-curve);
+            display: flex;
+            flex-direction: column;
+            border-radius: var(--border-radius);
+            background-color: var(--surface-color); /* Fondo para que se vea el glow */
+        }
+        #chatbot-container.visible {
+            opacity: 1;
+            transform: translateX(0);
+            pointer-events: auto;
+            box-shadow: 0 0 25px rgba(88, 101, 242, 0.7); /* El efecto NEÓN */
+        }
+
+        .chatbot-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            background-color: rgba(0,0,0,0.2);
+            flex-shrink: 0;
+        }
+
+        .chatbot-header h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .back-button {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: var(--text-muted);
+            padding: 6px 14px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 13px;
+            font-family: 'Poppins', sans-serif;
+            transition: all 0.3s ease;
+        }
+        .back-button:hover {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            color: white;
+            transform: scale(1.05);
+        }
+
+        #chatbot-container iframe {
+            flex-grow: 1;
+            border: none;
+            border-bottom-left-radius: var(--border-radius);
+            border-bottom-right-radius: var(--border-radius);
+        }
+        
+        #mission-details h2 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+        #mission-details .hook { font-size: 16px; color: var(--text-muted); margin-bottom: 24px; }
+        #mission-details h3 { font-size: 16px; font-weight: 600; color: var(--primary-color); margin-bottom: 12px; }
+        
+        #mission-details ul { list-style: none; margin-bottom: 30px; }
+        #mission-details ul li {
+            font-size: 15px; color: var(--text-muted);
+            margin-bottom: 8px; padding-left: 25px; position: relative;
+        }
+        #mission-details ul li::before {
+            content: '✓'; position: absolute; left: 0;
+            color: var(--primary-color); font-weight: 700;
+        }
+
+        .ada-button {
+            display: inline-block;
+            padding: 14px 28px;
+            background: var(--accent-gradient);
+            color: #ffffff;
+            font-size: 16px; font-weight: 600;
+            text-decoration: none; border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            align-self: flex-start;
+        }
+
+        .ada-button:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 8px 25px rgba(88, 101, 242, 0.5);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="widget-container">
+        <div id="missions-list-container">
+             <!-- Las tarjetas de misión se insertarán aquí -->
+        </div>
+        <div id="mission-details">
+             <!-- Los detalles de la misión y el chatbot se mostrarán aquí -->
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const missionsData = [
+                // ... (Todos tus datos de misiones van aquí, no se han modificado)
+                {
+                    title: 'Misión 1: Rojo',
+                    hook: 'Cada foto que subes, cada like que das, cada comentario que escribes... ¿sabías que todo eso crea un "tú" en internet? ¡Vamos a descubrir cómo es tu identidad digital!',
+                    learnings: [
+                        'Entender qué es la identidad digital y cómo se construye.',
+                        'Ver cómo lo que publicas hace que otros te vean de cierta forma.',
+                        'Aprender por qué es súper importante pensar antes de publicar algo.'
+                    ]
+                },
+                {
+                    title: 'Misión 2: Naranja',
+                    hook: 'Lo que para ti es un chiste, para otro puede ser un golpe. ¿Cómo saber si lo que compartes puede lastimar a alguien? ¡Es hora de activar tu súper poder de la empatía!',
+                    learnings: [
+                        'Descubrir cómo tus publicaciones pueden hacer sentir a los demás.',
+                        'Pensar en las consecuencias de compartir antes de darle clic al botón.',
+                        'Practicar la empatía para ser un campeón del respeto en línea.'
+                    ]
+                },
+                {
+                    title: 'Misión 3: Amarillo',
+                    hook: '¿Te imaginas dejar la puerta de tu casa abierta? ¡Configurar la privacidad de tus cuentas es como ponerle el candado a tu cuarto digital! ¿Sabes cómo hacerlo?',
+                    learnings: [
+                        'Explorar los botones y ajustes de privacidad de tus apps favoritas.',
+                        'Decidir quién puede ver lo que publicas: ¿todos, tus amigos, o solo tú?',
+                        'Entender por qué una buena configuración te mantiene a salvo.'
+                    ]
+                },
+                {
+                    title: 'Misión 4: Verde',
+                    hook: 'A veces una broma deja de ser chistosa y empieza a lastimar. ¿Sabes cuándo se cruza la línea y se convierte en acoso? ¡Vamos a aprender a diferenciarlo!',
+                    learnings: [
+                        'Aprender la diferencia entre una broma, un pleito y el ciberacoso.',
+                        'Identificar las señales cuando alguien se siente mal por algo en línea.',
+                        'Desarrollar tu juicio para saber qué está bien y qué está mal en internet.'
+                    ]
+                },
+                {
+                    title: 'Misión 5: Azul',
+                    hook: 'Si ves que alguien está siendo molestado en un chat o un juego, ¿qué haces? ¿Te quedas callado o actúas? Descubre cómo tu ayuda puede cambiarlo todo.',
+                    learnings: [
+                        'Reconocer cuando una situación en línea se está volviendo fea.',
+                        'Ponerte en los zapatos del otro y pensar: ¿cómo se sentirá?',
+                        'Saber qué hacer y a quién pedir ayuda cuando veas ciberacoso.'
+                    ]
+                },
+                {
+                    title: 'Misión 6: Morado',
+                    hook: '¡Noticia de último momento! ¿Pero... será cierta? En internet hay mucha información falsa. Conviértete en un detective de la verdad y aprende a no caer en trampas.',
+                    learnings: [
+                        'Descubrir cómo reconocer si una página de internet es confiable.',
+                        'Aprender a comparar diferentes noticias para encontrar la verdad.',
+                        'Usar pistas para saber si un contenido es real o falso.'
+                    ]
+                },
+                {
+                    title: 'Misión 7: Rosa',
+                    hook: '¿Te pidieron una tarea y no sabes qué páginas usar? ¡No todas las fuentes son iguales! Aprende a buscar como un profesional y a encontrar la información más chida y confiable.',
+                    learnings: [
+                        'Conocer los secretos para evaluar si una información es verdadera.',
+                        'Practicar cómo buscar y verificar datos para tus trabajos escolares.',
+                        'Convertirte en un experto en encontrar evidencia real en la red.'
+                    ]
+                },
+                {
+                    title: 'Misión 8: Café',
+                    hook: 'Videojuegos, series, tareas, jugar afuera... ¿cómo hacer que todo quepa en un día? ¡Vamos a crear un horario visual para que tengas tiempo para todo sin volverte loco!',
+                    learnings: [
+                        'Usar dibujos y colores para organizar tu tiempo digital y real.',
+                        'Encontrar el balance perfecto entre la pantalla, el juego y el descanso.',
+                        'Crear tu propio plan para disfrutar de la tecnología sin pasarte.'
+                    ]
+                },
+                {
+                    title: 'Misión 9: Gris',
+                    hook: '¿Sientes que a veces no puedes soltar el celular o la tablet? ¡Tú tienes el control! Aprende a decidir cuándo conectarte y cuándo es momento de hacer una pausa.',
+                    learnings: [
+                        'Tomar el control de tu propio horario y rutina digital.',
+                        'Evaluar si estás usando la tecnología de una forma saludable para ti.',
+                        'Descubrir trucos para no distraerte y manejar tu tiempo como un campeón.'
+                    ]
+                },
+                {
+                    title: 'Misión 10: Negro',
+                    hook: '¿Cómo es que Siri o Alexa te entienden? ¡Aprenden con datos, como cuando tú estudias para un examen! Descubre el secreto de cómo "piensa" la Inteligencia Artificial.',
+                    learnings: [
+                        'Entender qué es un modelo de IA y cómo se "entrena" con información.',
+                        'Ver por qué es importante que la IA aprenda de datos muy diferentes.',
+                        'Descubrir cómo evitar que la IA sea injusta con algunas personas.'
+                    ]
+                },
+                {
+                    title: 'Misión 11: Blanco',
+                    hook: 'Si a una IA solo le enseñas fotos de perros, ¡nunca aprenderá a reconocer un gato! La calidad de los datos lo es todo. Vamos a ver cómo se entrena a una IA para que sea súper lista.',
+                    learnings: [
+                        'Conectar la calidad de los datos con los resultados que da la IA.',
+                        'Entender por qué una IA puede cometer errores si sus datos no son buenos.',
+                        'Diferenciar entre "entrenar" a la IA y "ponerla a prueba".'
+                    ]
+                },
+                {
+                    title: 'Misión 12: Turquesa',
+                    hook: 'Ese filtro divertido que usa tu cara o el asistente que escucha tu voz... ¡usan Inteligencia Artificial! ¿Pero qué pasa con los datos que capturan? Aprende a proteger tu imagen y tu voz.',
+                    learnings: [
+                        'Descubrir cómo la IA puede reconocer caras, imágenes y voces.',
+                        'Saber qué datos personales pueden ser capturados sin que te des cuenta.',
+                        'Aprender trucos para ponerle límites a la IA y cuidar tu privacidad.'
+                    ]
+                },
+                {
+                    title: 'Misión 13: Dorado',
+                    hook: 'Tu cara, tu voz, tus movimientos... ¡son datos súper personales! ¿Estás seguro de que quieres compartirlos con cualquier app? Es hora de poner límites y decidir qué puede ver o escuchar la IA.',
+                    learnings: [
+                        'Identificar qué datos tuyos son sensibles, como tu rostro o tu voz.',
+                        'Conocer los riesgos de que tu imagen o sonido anden por ahí en internet.',
+                        'Crear tus propias reglas para protegerte en el mundo digital.'
+                    ]
+                },
+                {
+                    title: 'Misión 14: Plateado',
+                    hook: 'Si una IA decide quién entra a un juego o a quién le dan un premio, ¿cómo sabemos que es justa? ¿Y si solo elige a los mismos de siempre? ¡Vamos a investigar la justicia en los algoritmos!',
+                    learnings: [
+                        'Entender que las decisiones de la IA dependen de cómo fue creada.',
+                        'Descubrir qué es el "sesgo" y cómo puede hacer que la IA sea injusta.',
+                        'Reflexionar sobre qué pasa si los datos no representan a todos por igual.'
+                    ]
+                },
+                {
+                    title: 'Misión 15: Coral',
+                    hook: 'Una IA comete un error y perjudica a alguien. ¿Quién tiene la culpa? ¿El que la creó, el que la usa, la propia IA? ¡Un debate de detectives sobre la responsabilidad digital!',
+                    learnings: [
+                        'Ver qué grupos de personas pueden ser ignorados o excluidos por una IA.',
+                        'Pensar en cómo podemos crear una IA que sea más justa para todos.',
+                        'Preguntarnos quién se hace responsable si un algoritmo se equivocaba.'
+                    ]
+                },
+                {
+                    title: 'Misión 16: Lavanda',
+                    hook: '¡Felicidades, Agente Digital! Has completado todas tus misiones. Ahora tienes el poder de crear una guía para los nuevos exploradores. ¿Qué es lo más importante que aprendiste?',
+                    learnings: [
+                        'Hacer un resumen de tu identidad digital y cómo cuidarla.',
+                        'Crear las "Reglas de Oro" para proteger tu privacidad en línea.',
+                        'Compartir los mejores trucos para verificar información y no caer en fake news.',
+                        'Diseñar tu propio manifiesto para usar la tecnología de forma sana y feliz.'
+                    ]
+                }
+            ];
+
+            const listContainer = document.getElementById('missions-list-container');
+            const detailsPanel = document.getElementById('mission-details');
+            let missionCards = [];
+
+            function renderMissionList() {
+                missionsData.forEach((mission, index) => {
+                    const card = document.createElement('div');
+                    card.className = 'mission-card';
+                    card.dataset.index = index;
+                    card.innerHTML = `<span class="mission-number">${index + 1}</span><h4 class="mission-title">${mission.title}</h4>`;
+                    listContainer.appendChild(card);
+                    missionCards.push(card);
+                });
+            }
+
+            function updateDetails(index) {
+                const mission = missionsData[index];
+                
+                detailsPanel.innerHTML = `
+                    <div id="mission-details-content">
+                        <h2>${mission.title}</h2>
+                        <p class="hook">${mission.hook}</p>
+                        <h3>En esta Misión, vas a:</h3>
+                        <ul>${mission.learnings.map(item => `<li>${item}</li>`).join('')}</ul>
+                        <button class="ada-button">Iniciar Misión con ADA</button>
+                    </div>
+                    
+                    <div id="chatbot-container">
+                        <div class="chatbot-header">
+                            <h3>${mission.title}</h3>
+                            <button class="back-button">← Volver</button>
+                        </div>
+                        <iframe src="https://www.chatbase.co/chatbot-iframe/5edSnh7lOaqWlAs1uBhtW"></iframe>
+                    </div>
+                `;
+
+                // --- Referencias y Lógica de Eventos ---
+                const missionContent = detailsPanel.querySelector('#mission-details-content');
+                const chatbotContainer = detailsPanel.querySelector('#chatbot-container');
+                const startButton = detailsPanel.querySelector('.ada-button');
+                const backButton = detailsPanel.querySelector('.back-button');
+
+                startButton.addEventListener('click', () => {
+                    missionContent.classList.add('hidden');
+                    chatbotContainer.classList.add('visible');
+                });
+
+                backButton.addEventListener('click', () => {
+                    missionContent.classList.remove('hidden');
+                    chatbotContainer.classList.remove('visible');
+                });
+            }
+
+            function updateActiveCard(index) {
+                 missionCards.forEach((card, i) => card.classList.toggle('active', i == index));
+            }
+            
+            function setupScrollObserver() {
+                const options = {
+                    root: listContainer,
+                    rootMargin: '-50% 0px -50% 0px',
+                    threshold: 0
+                };
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const index = entry.target.dataset.index;
+                            updateDetails(index);
+                            updateActiveCard(index);
+                        }
+                    });
+                }, options);
+                missionCards.forEach(card => observer.observe(card));
+            }
+            
+            function setupClickListeners() {
+                listContainer.addEventListener('click', (e) => {
+                    const card = e.target.closest('.mission-card');
+                    if (card) {
+                        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                });
+            }
+
+            // --- Inicialización ---
+            renderMissionList();
+            setupScrollObserver();
+            setupClickListeners();
+            if (missionCards.length > 0) {
+                updateDetails(0);
+                updateActiveCard(0);
+            }
+        });
+    </script>
+
+</body>
+</html>
